@@ -9,3 +9,4 @@ scratch/
 
 .DS_Store
 .env
+results/head.pkl
