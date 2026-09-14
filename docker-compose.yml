@@ -1,0 +1,29 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    command: redis-server --appendonly no --save ""
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      retries: 10
+
+  worker:
+    build: .
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DEVICE: cpu
+      BATCH_SIZE: "16"
+      BATCH_WAIT_MS: "200"
+      CLAIM_IDLE_MS: "10000"
+      HF_HOME: /srv/hf
+    volumes:
+      - ./data:/srv/data:ro
+      - ./results:/srv/results
+      - ./app:/srv/app
+      - hf-cache:/srv/hf
+    depends_on:
+      redis: {condition: service_healthy}
+
+volumes:
+  hf-cache:

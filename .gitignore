@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+
+data/
+results/jobs/
+results/embeddings.npz
+scratch/
+
+.DS_Store
+.env
