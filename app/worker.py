@@ -2,6 +2,9 @@ import os, sys, time, pickle, numpy as np, torch
 from PIL import Image
 from transformers import AutoModel
 from app.store import connect, mark_done, STREAM, GROUP
+from app.metrics import (BATCH_LATENCY, BATCH_SIZE, TILES_DONE,
+                        RECLAIMS, QUEUE_DEPTH, QUEUE_LEN)
+from prometheus_client import start_http_server
 
 NAME = sys.argv[1] if len(sys.argv) > 1 else f"w-{os.getpid()}"
 BATCH = int(os.getenv("BATCH_SIZE", "16"))
@@ -33,6 +36,7 @@ def gather(r):
                                  min_idle_time=IDLE_MS, count=BATCH)
     if claimed:
         print(f"[{NAME}] reclaimed {len(claimed)}", flush=True)
+        RECLAIMS.inc()
         return claimed
 
     batch, deadline = [], time.monotonic() + WAIT_MS / 1000
@@ -53,6 +57,7 @@ def gather(r):
 def main():
     device = pick_device()
     print(f"[{NAME}] device={device} batch={BATCH} wait={WAIT_MS}ms", flush=True)
+    start_http_server(9100)
 
     model = AutoModel.from_pretrained("owkin/phikon").to(device).eval()
     hd = np.load("results/head.npz", allow_pickle=True)
@@ -78,6 +83,16 @@ def main():
         r.xack(STREAM, GROUP, *ids)
 
         dt = time.perf_counter() - t0
+        BATCH_LATENCY.observe(dt)
+        BATCH_SIZE.observe(len(batch))
+        TILES_DONE.labels(outcome="ok").inc(len(batch))
+        QUEUE_LEN.set(r.xlen(STREAM))
+        try:
+            QUEUE_DEPTH.set(r.xpending(STREAM, GROUP)["pending"])
+        except Exception:
+            pass
+        with open("/srv/results/batch_samples.csv", "a") as f:
+            f.write(f"{time.time():.3f},{len(batch)},{dt:.6f}\n")
         print(f"[{NAME}] {len(batch)} tiles in {dt*1000:.0f}ms "
               f"({len(batch)/dt:.1f}/s)", flush=True)
 

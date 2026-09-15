@@ -8,6 +8,20 @@ services:
       interval: 2s
       retries: 10
 
+  api:
+    build: .
+    command: ["uvicorn", "app.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports: ["8000:8000"]
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      TILE_ROOT: /srv/data/CRC-VAL-HE-7K
+    volumes:
+      - ./data:/srv/data:ro
+      - ./results:/srv/results
+      - ./app:/srv/app
+    depends_on:
+      redis: {condition: service_healthy}
+
   worker:
     build: .
     environment:
