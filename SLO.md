@@ -101,3 +101,42 @@ a scaling demo that would not actually scale.
 
 Remaining dial: batch size, which changes per-tile fixed overhead rather
 than redistributing it.
+
+## Batch size sweep
+
+800-tile job, 1 worker, 8 threads, CPU inference.
+
+| Batch | Throughput | Batch p50 | Per-tile |
+|---|---|---|---|
+| 1 | 9.0 tiles/s | 0.110 s | 109.9 ms |
+| 4 | 10.8 tiles/s | 0.373 s | 93.3 ms |
+| 8 | 11.3 tiles/s | 0.719 s | 89.9 ms |
+| 16 | 11.4 tiles/s | 1.439 s | 89.9 ms |
+| 32 | 11.5 tiles/s | 2.914 s | 91.1 ms |
+| 64 | 11.9 tiles/s | 5.910 s | 96.7 ms |
+
+Per-tile cost is a U-curve with a flat minimum at batch 8-16. Batching from
+1 to 8 cuts per-tile cost 18% by amortizing fixed per-batch overhead (Redis
+round-trip, memmap flush, tensor setup). Beyond 16 it regresses: on CPU the
+larger activation matrices exceed cache and the workload shifts from
+compute-bound to memory-bandwidth-bound. This is the opposite of GPU
+behaviour, where throughput continues climbing well past batch 128.
+
+Batch 64 buys 4% more throughput than batch 8 for 8x the batch latency.
+Since batch latency sets time-to-first-tile, that trade fails the SLO.
+
+Chosen: batch 8. Lowest per-tile cost at the lowest latency that achieves it.
+
+## Verification after tuning
+
+Same under-capacity workload (1 job / 30 s), batch 16 -> batch 8:
+
+| Metric | Target | Batch 16 | Batch 8 | Change |
+|---|---|---|---|---|
+| Time to first tile p95 | < 5 s | 2.03 s | 1.07 s | -47% |
+| Job e2e p95 | < 120 s | 18.8 s | 18.1 s | -4% |
+| Error rate | < 0.1% | 0% | 0% | - |
+
+Throughput is unchanged (~11 tiles/s) because the workload is compute-bound.
+The gain is entirely latency: a smaller batch returns its first result sooner.
+E2E barely moves because total compute per job is constant.

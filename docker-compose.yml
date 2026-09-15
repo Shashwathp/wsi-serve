@@ -27,7 +27,7 @@ services:
     environment:
       REDIS_URL: redis://redis:6379/0
       DEVICE: cpu
-      BATCH_SIZE: "16"
+      BATCH_SIZE: "${BATCH:-8}"
       BATCH_WAIT_MS: "200"
       CLAIM_IDLE_MS: "10000"
       HF_HOME: /srv/hf
