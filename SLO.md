@@ -51,3 +51,28 @@ iterations before MAX_WAIT, so they never incremented the timeout counter.
 
 Measured capacity ceiling: ~12 tiles/s per worker. Arrival above that produces
 unbounded queue growth, not graceful degradation.
+
+## Metric correction
+
+The over-capacity run was re-tested after fixing two measurement bugs:
+jobs still queued at test end were being dropped from the latency sample,
+and k6 killed those iterations before they could increment the timeout counter.
+
+Fix: gracefulStop extended past MAX_WAIT, and timed-out jobs now record
+MAX_WAIT as a censored e2e sample rather than contributing nothing.
+
+Identical workload, before and after:
+
+| Metric | Before fix | After fix |
+|---|---|---|
+| Failure rate | 0% | 57.9% |
+| Job e2e p95 | 89.8 s (pass) | 240 s (fail) |
+| Jobs completed | 5 / 19 | 8 / 19 |
+| Thresholds crossed | 1 | 3 |
+
+240 s is the censoring floor, not the true latency — those jobs were still
+running when measurement stopped. The real p95 is higher.
+
+HTTP error rate was 0.00% across 3,468 requests in both runs. The API stayed
+healthy throughout. Monitoring HTTP status alone would have shown a fully
+green service while 58% of submitted work never completed.
