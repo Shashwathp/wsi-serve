@@ -31,6 +31,9 @@ services:
       BATCH_WAIT_MS: "200"
       CLAIM_IDLE_MS: "10000"
       HF_HOME: /srv/hf
+      OMP_NUM_THREADS: "${OMP:-8}"
+      MKL_NUM_THREADS: "${OMP:-8}"
+      TORCH_NUM_THREADS: "${OMP:-8}"
     volumes:
       - ./data:/srv/data:ro
       - ./results:/srv/results

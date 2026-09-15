@@ -76,3 +76,28 @@ running when measurement stopped. The real p95 is higher.
 HTTP error rate was 0.00% across 3,468 requests in both runs. The API stayed
 healthy throughout. Monitoring HTTP status alone would have shown a fully
 green service while 58% of submitted work never completed.
+
+## Worker/thread sweep
+
+1,200-tile job, batch 16, 8 CPUs allocated to the Docker VM.
+Total threads held constant at 8 across all configurations.
+
+| Config | Throughput | Batch p50 |
+|---|---|---|
+| 1 worker x 8 threads | 10.9 tiles/s | 1.50 s |
+| 2 workers x 4 threads | 10.4 tiles/s | 3.17 s |
+| 4 workers x 2 threads | 9.3 tiles/s | 7.48 s |
+| 8 workers x 1 thread | 10.3 tiles/s | 16.08 s |
+
+Throughput is flat (9.3-10.9) while batch latency scales ~linearly with
+worker count. The workload is compute-bound, so splitting a fixed core
+budget across more processes redistributes the same work rather than
+adding capacity, and each worker takes proportionally longer per batch.
+
+Implication: replica count is not a throughput dial on a single machine.
+Autoscaling replicas only adds capacity when replicas land on additional
+hardware. Kubernetes/KEDA was scoped out on this basis rather than building
+a scaling demo that would not actually scale.
+
+Remaining dial: batch size, which changes per-tile fixed overhead rather
+than redistributing it.
