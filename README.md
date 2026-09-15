@@ -223,37 +223,6 @@ produces the unbounded queue growth documented above.
 SLO targets are encoded as k6 thresholds, so the SLO is a test that exits non-zero
 rather than a document nobody reads.
 
-## Limitations
-
-**Not tested beyond a single machine.** Everything runs in Docker Compose on one
-laptop. There is no multi-node behaviour, no network partition testing, no real
-distributed failure mode.
-
-**No autoscaling.** Kubernetes and KEDA were scoped out after the worker sweep
-showed that adding replicas on a fixed core budget does not add throughput. A
-scaling demo on one machine would show the mechanism working while throughput
-stayed flat. Autoscaling only adds capacity when replicas land on additional
-hardware.
-
-**No admission control.** The API accepts every job with a 202 regardless of queue
-depth. Past capacity this produces unbounded growth rather than shedding load or
-signalling backpressure. A production version would reject or queue-with-notice
-above a depth threshold.
-
-**Stream is never trimmed.** Acked entries are retained, so the stream grows
-without bound. Needs XADD MAXLEN or periodic XTRIM.
-
-**Classifier accuracy is not a result.** The linear probe reports 99.95% on a
-random within-set split, which is leakage — adjacent tiles from the same slide land
-in both train and test. Published cross-cohort numbers for this task are around
-95%. The head exists so the service has something legible to return, not as a
-modeling contribution.
-
-**CPU only.** Measured 61 tiles/s on Apple MPS versus 11 tiles/s in a CPU
-container, but Docker on Apple Silicon has no GPU access, so the served path is
-CPU. A GPU cost comparison on rented hardware was scoped out as low value relative
-to the remaining work.
-
 ## Running it
 
     docker compose up -d --scale worker=1
