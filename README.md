@@ -254,14 +254,6 @@ container, but Docker on Apple Silicon has no GPU access, so the served path is
 CPU. A GPU cost comparison on rented hardware was scoped out as low value relative
 to the remaining work.
 
-## What this project does not demonstrate
-
-Worth stating plainly. This is a two-week solo project and it cannot show: being
-paged for something you did not build, incident response with real users affected,
-rollback under pressure, multi-team API contracts you cannot unilaterally change,
-authn/authz, multi-tenancy, audit trails, or the slow operational drift that only
-appears over months.
-
 ## Running it
 
     docker compose up -d --scale worker=1
