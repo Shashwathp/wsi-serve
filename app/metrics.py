@@ -3,7 +3,7 @@ from prometheus_client import Counter, Histogram, Gauge
 BATCH_LATENCY = Histogram(
     "worker_batch_seconds",
     "Wall time to process one batch",
-    buckets=(0.05, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 5.0, 10.0),
+    buckets=(0.1, 0.25, 0.5, 0.75, 1.0, 1.1, 1.2, 1.3, 1.35, 1.4, 1.45, 1.5, 1.75, 2.0, 3.0, 5.0, 10.0),
 )
 
 BATCH_SIZE = Histogram(
